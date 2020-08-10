@@ -1,6 +1,6 @@
 # Stackdriver exporter
 
-Command line application to extract stackdiver metrics and export then into different formats like prometheus, ....
+Command line application to extract stackdiver metrics and export then into different formats like bigquery ....
 
 ### Notes
 
@@ -18,4 +18,4 @@ export GOOGLE_APPLICATION_CREDENTIALS="/home/user/Downloads/my-key.json"
 
 ### Still to come
 
-More output formats like CSV, JSON and so on
+More output formats like CSV, JSON, PROMETHEUS and so on
