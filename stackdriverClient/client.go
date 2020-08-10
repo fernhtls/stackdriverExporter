@@ -29,8 +29,14 @@ func (st *StackDriverClient) validateClient() error {
 	if st.MetricType == "" {
 		return errors.New("should have one or more metric to retrieve")
 	}
-	if st.EndTime.AsTime().Before(st.StartTime.AsTime()) {
-		return errors.New("endtime cannot be bigger than starttime")
+	if st.StartTime == nil {
+		return errors.New("starttime cannot be empty")
+	}
+	if st.EndTime == nil {
+		return errors.New("starttime cannot be empty")
+	}
+	if st.EndTime.AsTime().Before(st.StartTime.AsTime()) || st.EndTime.AsTime().Equal(st.StartTime.AsTime()) {
+		return errors.New("endtime cannot be bigger, or equal, than starttime")
 	}
 	return nil
 }
