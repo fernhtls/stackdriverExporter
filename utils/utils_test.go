@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -21,7 +20,6 @@ func TestGetMetricAndIntervalErrorMoreArguments(t *testing.T) {
 
 func TestGetMetricAndIntervalCronError(t *testing.T) {
 	_, _, err := getMetricAndInterval([]string{"metrictype", "*/99 * * * *"})
-	fmt.Println(err)
 	assert.Error(t, err)
 }
 
@@ -29,9 +27,10 @@ func TestSetMetricsAndIntervalList(t *testing.T) {
 	metricsList := make([]string, 0)
 	metricsList = append(metricsList, "storage.googleapis.com/storage/total_bytes|*/10 * * * *")
 	metricsList = append(metricsList, "storage.googleapis.com/storage/object_count|*/5 * * * *")
-	metricsList = append(metricsList, "storage.googleapis.com/storage/object_shit|*/5 * * * *")
+	metricsList = append(metricsList, "storage.googleapis.com/storage/object_count|*/5 * * * *") // not including repeting metrics
 	metricsType, err := SetMetricsAndIntervalList(metricsList)
 	assert.Greater(t, len(metricsType), 0)
+	assert.Equal(t, len(metricsType), 2)
 	assert.NoError(t, err)
 	//
 	assert.Equal(t, metricsType[0].MetricType, "storage.googleapis.com/storage/total_bytes")

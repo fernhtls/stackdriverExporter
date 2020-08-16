@@ -40,6 +40,18 @@ func getMetricAndInterval(metricAndIntervalSlice []string) (string, string, erro
 	return metricType, intervalMetric, nil
 }
 
+// check if metrics are not already in the slice
+func checkIfNotInMetricsList(metricType string, metricTypeList []MetricsAndIntervalType) bool {
+	found := false
+	for _, m := range metricTypeList {
+		if m.MetricType == metricType {
+			found = true
+			break
+		}
+	}
+	return found
+}
+
 // SetMetricsAndIntervalList : settting metrics and interval list
 func SetMetricsAndIntervalList(metrics []string) ([]MetricsAndIntervalType, error) {
 	metricsAndInterval := make([]MetricsAndIntervalType, 0)
@@ -48,10 +60,12 @@ func SetMetricsAndIntervalList(metrics []string) ([]MetricsAndIntervalType, erro
 		if err != nil {
 			return nil, err
 		}
-		metricsAndInterval = append(metricsAndInterval, MetricsAndIntervalType{
-			MetricType: metricType,
-			Interval:   intervalMetric,
-		})
+		if !checkIfNotInMetricsList(metricType, metricsAndInterval) {
+			metricsAndInterval = append(metricsAndInterval, MetricsAndIntervalType{
+				MetricType: metricType,
+				Interval:   intervalMetric,
+			})
+		}
 	}
 	return metricsAndInterval, nil
 }

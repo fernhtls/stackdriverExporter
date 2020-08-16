@@ -101,7 +101,6 @@ func getTimeSeriesMetric(metric string, cronInterval string) {
 func main() {
 	flag.Parse()
 	validateFlags()
-	fmt.Println(metricsList)
 	metricsAndIntervals, err := utils.SetMetricsAndIntervalList(metricsList)
 	if err != nil {
 		log.Fatal("error on setting metrics list:", err)
