@@ -15,7 +15,16 @@ export GOOGLE_APPLICATION_CREDENTIALS="/home/user/Downloads/my-key.json"
 	projectID := "YOUR_PROJECT_ID"
 ```
 
-
 ### Still to come
 
 More output formats like CSV, JSON, PROMETHEUS and so on
+
+### Examples calling to get multiple metrics
+
+go run main.go --project_id "deployments-metrics" \
+--metric_type "storage.googleapis.com/storage/total_bytes|*/10 * * * *" \
+--metric_type "storage.googleapis.com/storage/object_count|*/10 * * * *"
+
+### Next steps
+* interface for function outputs
+* unique jobs only
