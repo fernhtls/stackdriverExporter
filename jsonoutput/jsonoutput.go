@@ -71,8 +71,6 @@ func (j *JSONOutput) GetTimeSeriesMetric(projectID, metric, cronInterval string)
 		j.Logger.Println(fmt.Errorf("error on creating file to write: %v", err))
 	}
 	defer f.Close()
-	f.Sync()
-
 	j.Logger.Println(fmt.Sprintf("Wrtinting to file: %s", fileName))
 	for {
 		resp, err := it.Next()
