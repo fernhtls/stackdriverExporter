@@ -23,8 +23,10 @@ More output formats like CSV, JSON, PROMETHEUS and so on
 
 ```
 go run main.go --project_id "deployments-metrics" \
---metric_type "storage.googleapis.com/storage/total_bytes|*/10 * * * *" \
---metric_type "storage.googleapis.com/storage/object_count|*/10 * * * *"
+  --metric_type "storage.googleapis.com/storage/total_bytes|*/10 * * * *" \
+  --metric_type "storage.googleapis.com/storage/object_count|*/10 * * * *" \
+  --output_type "json" \
+  --output_path "/tmp"
 ```
 
 ### Next steps

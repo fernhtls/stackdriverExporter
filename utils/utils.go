@@ -12,6 +12,12 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
+//OutputMethod : interface for the several output methods
+type OutputMethod interface {
+	ValidateOutputMethod() error
+	GetTimeSeriesMetric(string, string, string)
+}
+
 // MetricsAndIntervalType : struct with the metric type + the interval
 type MetricsAndIntervalType struct {
 	MetricType string
@@ -72,12 +78,12 @@ func SetMetricsAndIntervalList(metrics []string) ([]MetricsAndIntervalType, erro
 }
 
 // AddJobs : adds jobs to the cron server
-func AddJobs(cronServer *cron.Cron, cronLogger *log.Logger, metricList []MetricsAndIntervalType, projectID, outputPath string, getMetric func(*log.Logger, string, string, string, string)) error {
+func AddJobs(cronServer *cron.Cron, cronLogger *log.Logger, metricList []MetricsAndIntervalType, projectID string, output OutputMethod) error {
 	for _, metricType := range metricList {
 		// not passing directly as it passes only the last value to the function calls
 		metricTypeMetricType := metricType.MetricType
 		metricTypeInterval := metricType.Interval
-		_, err := cronServer.AddFunc(metricTypeInterval, func() { getMetric(cronLogger, projectID, metricTypeMetricType, metricTypeInterval, outputPath) })
+		_, err := cronServer.AddFunc(metricTypeInterval, func() { output.GetTimeSeriesMetric(projectID, metricTypeMetricType, metricTypeInterval) })
 		if err != nil {
 			return err
 		}
