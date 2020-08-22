@@ -15,7 +15,6 @@ import (
 type metricsListType []string
 
 var projectID string
-var parallelism int
 var metricsList metricsListType
 var outputType string
 var outputPath string
@@ -96,7 +95,6 @@ func main() {
 	buildJobsOutPut()
 	fmt.Println("")
 	fmt.Println("  Project: ", "\t\t", projectID)
-	fmt.Println("  Parallelism: ", "\t", parallelism)
 	fmt.Println("  Metrics list: ", "\t", metricsList.String())
 	fmt.Println("")
 	if len(cronServer.Entries()) == 0 {
