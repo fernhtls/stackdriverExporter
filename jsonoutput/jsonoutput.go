@@ -19,7 +19,7 @@ import (
 
 // JSONOutput : Struct type for json output
 type JSONOutput struct {
-	cronLogger *log.Logger
+	Logger     *log.Logger
 	OutputPath string
 }
 
@@ -51,9 +51,9 @@ func (j *JSONOutput) buildFileName(metricType string, startTime *timestamppb.Tim
 func (j *JSONOutput) GetTimeSeriesMetric(projectID, metric, cronInterval string) {
 	startTime, endTime, err := utils.GetStartAndEndTimeJobs(cronInterval)
 	if err != nil {
-		j.cronLogger.Println(fmt.Errorf("error on getting start and end time : %v", err))
+		j.Logger.Println(fmt.Errorf("error on getting start and end time : %v", err))
 	}
-	j.cronLogger.Println("getting metrics for type metric", metric, "start:", startTime.AsTime(), "end:", endTime.AsTime())
+	j.Logger.Println("getting metrics for type metric", metric, "start:", startTime.AsTime(), "end:", endTime.AsTime())
 	client := stackdriverClient.StackDriverClient{
 		ProjectID:  projectID,
 		StartTime:  startTime,
@@ -62,35 +62,35 @@ func (j *JSONOutput) GetTimeSeriesMetric(projectID, metric, cronInterval string)
 	}
 	it, err := client.GetTimeSeriesMetric()
 	if err != nil {
-		j.cronLogger.Println(fmt.Errorf("error on creating client: %v", err))
+		j.Logger.Println(fmt.Errorf("error on creating client: %v", err))
 	}
 
 	fileName := j.buildFileName(metric, startTime, endTime)
 	f, err := os.Create(fileName)
 	if err != nil {
-		j.cronLogger.Println(fmt.Errorf("error on creating file to write: %v", err))
+		j.Logger.Println(fmt.Errorf("error on creating file to write: %v", err))
 	}
 	defer f.Close()
 	f.Sync()
 
-	j.cronLogger.Println(fmt.Sprintf("Wrtinting to file: %s", fileName))
+	j.Logger.Println(fmt.Sprintf("Wrtinting to file: %s", fileName))
 	for {
 		resp, err := it.Next()
 		if err == iterator.Done {
-			j.cronLogger.Println(fmt.Errorf("done error: %v", err))
+			j.Logger.Println(fmt.Errorf("done error: %v", err))
 			break
 		}
 		if err != nil {
-			j.cronLogger.Println(fmt.Errorf("error retrieving timeseries values: %v", err))
+			j.Logger.Println(fmt.Errorf("error retrieving timeseries values: %v", err))
 		}
 		jm := jsonpb.Marshaler{}
 		resJSON, err := jm.MarshalToString(resp)
 		if err != nil {
-			j.cronLogger.Println(err)
+			j.Logger.Println(err)
 		}
 		_, err = f.WriteString(resJSON + "\n")
 		if err != nil {
-			j.cronLogger.Println(fmt.Errorf("error on writing to file : %v", err))
+			j.Logger.Println(fmt.Errorf("error on writing to file : %v", err))
 			break
 		}
 	}

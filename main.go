@@ -74,7 +74,8 @@ func buildJobsOutPut() {
 			log.Fatal("should pass a output_path")
 		}
 		j := jsonoutput.JSONOutput{
-			OutputPath: "/tmp",
+			OutputPath: outputPath,
+			Logger:     cronLogger,
 		}
 		err := j.ValidateOutputMethod()
 		if err != nil {
