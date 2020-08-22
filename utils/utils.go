@@ -2,6 +2,7 @@ package utils
 
 import (
 	"errors"
+	"log"
 	"strings"
 	"time"
 
@@ -71,12 +72,12 @@ func SetMetricsAndIntervalList(metrics []string) ([]MetricsAndIntervalType, erro
 }
 
 // AddJobs : adds jobs to the cron server
-func AddJobs(cronServer *cron.Cron, metricList []MetricsAndIntervalType, getMetric func(string, string)) error {
+func AddJobs(cronServer *cron.Cron, cronLogger *log.Logger, metricList []MetricsAndIntervalType, projectID, outputPath string, getMetric func(*log.Logger, string, string, string, string)) error {
 	for _, metricType := range metricList {
 		// not passing directly as it passes only the last value to the function calls
 		metricTypeMetricType := metricType.MetricType
 		metricTypeInterval := metricType.Interval
-		_, err := cronServer.AddFunc(metricTypeInterval, func() { getMetric(metricTypeMetricType, metricTypeInterval) })
+		_, err := cronServer.AddFunc(metricTypeInterval, func() { getMetric(cronLogger, projectID, metricTypeMetricType, metricTypeInterval, outputPath) })
 		if err != nil {
 			return err
 		}
@@ -85,6 +86,7 @@ func AddJobs(cronServer *cron.Cron, metricList []MetricsAndIntervalType, getMetr
 }
 
 // GetStartAndEndTimeJobs : Returns the start and end time for running a time series
+// gets the start time from the interval for the cronjob
 func GetStartAndEndTimeJobs(cronInterval string) (*timestamppb.Timestamp, *timestamppb.Timestamp, error) {
 	timeStartFunc := time.Now().Truncate(time.Second)
 	e, err := cronexpr.Parse(cronInterval)

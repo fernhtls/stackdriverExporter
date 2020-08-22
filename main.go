@@ -7,11 +7,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/fernhtls/stackdriverExporter/stackdriverClient"
+	json "github.com/fernhtls/stackdriverExporter/jsonoutput"
 	"github.com/fernhtls/stackdriverExporter/utils"
-	"github.com/golang/protobuf/jsonpb"
 	cron "github.com/robfig/cron/v3"
-	"google.golang.org/api/iterator"
 )
 
 type metricsListType []string
@@ -61,43 +59,6 @@ func validateFlags() {
 	}
 }
 
-// calls get metrics
-// todo: all these methods will be pushed to its own way of pushign the data back
-// todo: add interval from job
-func getTimeSeriesMetric(metric string, cronInterval string) {
-	startTime, endTime, err := utils.GetStartAndEndTimeJobs(cronInterval)
-	if err != nil {
-		cronLogger.Println(fmt.Errorf("error on getting start and end time : %v", err))
-	}
-	cronLogger.Println("getting metrics for type metric", metric, "start:", startTime.AsTime(), "end:", endTime.AsTime())
-	client := stackdriverClient.StackDriverClient{
-		ProjectID:  projectID,
-		StartTime:  startTime,
-		EndTime:    endTime,
-		MetricType: metric,
-	}
-	it, err := client.GetTimeSeriesMetric()
-	if err != nil {
-		cronLogger.Println(fmt.Errorf("error on creating client: %v", err))
-	}
-	for {
-		resp, err := it.Next()
-		if err == iterator.Done {
-			cronLogger.Println(fmt.Errorf("done error: %v", err))
-			break
-		}
-		if err != nil {
-			cronLogger.Println(fmt.Errorf("error retrieving timeseries values: %v", err))
-		}
-		jm := jsonpb.Marshaler{}
-		resJSON, err := jm.MarshalToString(resp)
-		if err != nil {
-			cronLogger.Println(err)
-		}
-		cronLogger.Println(resJSON)
-	}
-}
-
 func main() {
 	flag.Parse()
 	validateFlags()
@@ -105,7 +66,7 @@ func main() {
 	if err != nil {
 		log.Fatal("error on setting metrics list:", err)
 	}
-	err = utils.AddJobs(cronServer, metricsAndIntervals, getTimeSeriesMetric)
+	err = utils.AddJobs(cronServer, cronLogger, metricsAndIntervals, projectID, "/tmp", json.GetTimeSeriesMetric)
 	if err != nil {
 		log.Fatal("error on adding jobs to cron server:", err)
 	}
