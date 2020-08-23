@@ -70,7 +70,7 @@ func buildJobsOutPut() {
 	switch outputType {
 	case "json":
 		if outputPath == "" {
-			log.Fatal("should pass a output_path")
+			log.Fatal("should pass a output_path for json output")
 		}
 		j := jsonoutput.JSONOutput{
 			OutputPath: outputPath,
