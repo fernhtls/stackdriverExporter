@@ -76,7 +76,7 @@ func buildJobsOutPut() {
 			OutputPath: outputPath,
 			Logger:     cronLogger,
 		}
-		err := j.ValidateOutputMethod()
+		err := j.ValidateOutputPath()
 		if err != nil {
 			log.Fatal(err)
 		}

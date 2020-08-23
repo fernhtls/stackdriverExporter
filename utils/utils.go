@@ -14,7 +14,6 @@ import (
 
 //OutputMethod : interface for the several output methods
 type OutputMethod interface {
-	ValidateOutputMethod() error
 	GetTimeSeriesMetric(string, string, string)
 }
 

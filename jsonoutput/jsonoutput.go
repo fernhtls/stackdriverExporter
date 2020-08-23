@@ -23,8 +23,8 @@ type JSONOutput struct {
 	OutputPath string
 }
 
-// ValidateOutputMethod : validates the output of the method - does not add the method to job if it fails
-func (j *JSONOutput) ValidateOutputMethod() error {
+// ValidateOutputPath : validates the output path for json
+func (j *JSONOutput) ValidateOutputPath() error {
 	if j.OutputPath == "" {
 		return errors.New("OutputPath can't be blank")
 	}

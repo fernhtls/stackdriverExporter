@@ -32,13 +32,13 @@ func TestValidateOutputMethod(t *testing.T) {
 	jExists := JSONOutput{
 		OutputPath: "/tmp",
 	}
-	err := jExists.ValidateOutputMethod()
+	err := jExists.ValidateOutputPath()
 	assert.NoError(t, err)
 	// Path does not exist
 	jDoesNotExist := JSONOutput{
 		OutputPath: "/zzzz",
 	}
-	err = jDoesNotExist.ValidateOutputMethod()
+	err = jDoesNotExist.ValidateOutputPath()
 	assert.Error(t, err)
 	// Passing a file as path
 	f, err := os.Create("/tmp/test_file.txt")
@@ -47,7 +47,7 @@ func TestValidateOutputMethod(t *testing.T) {
 		OutputPath: "/tmp/test_file.txt",
 	}
 	f.Close()
-	err = jFileError.ValidateOutputMethod()
+	err = jFileError.ValidateOutputPath()
 	assert.Error(t, err)
 	err = os.Remove("/tmp/test_file.txt")
 	if err != nil {
