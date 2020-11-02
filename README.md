@@ -1,10 +1,10 @@
 # Stackdriver exporter
 
-Command line application to extract stackdiver metrics and export then into different formats like bigquery ....
+Command line application to extract stackdiver metrics and export then into different formats like json, prometheus, bigquery ....
 
 ### Notes
 
-Depends on the following:
+Depends on the following for connectivity:
 
 ```
 export GOOGLE_APPLICATION_CREDENTIALS="/home/user/Downloads/my-key.json"
@@ -15,9 +15,11 @@ export GOOGLE_APPLICATION_CREDENTIALS="/home/user/Downloads/my-key.json"
 	projectID := "YOUR_PROJECT_ID"
 ```
 
+Or `gcloud auth application-default`.
+
 ### Still to come
 
-More output formats like CSV, JSON, PROMETHEUS and so on
+More output formats like PROMETHEUS, import to BQ and so on
 
 ### Examples calling to get multiple metrics
 
@@ -28,7 +30,3 @@ go run main.go --project_id "deployments-metrics" \
   --output_type "json" \
   --output_path "/tmp"
 ```
-
-### Next steps
-* interface for function outputs
-* unique jobs only
