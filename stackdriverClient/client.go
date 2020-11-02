@@ -11,7 +11,7 @@ import (
 
 // StackDriverClient : struct with the client and all the definitions for accessing stackdriver
 // ProjectID	- project id for the connection and extraction of metrics
-// Starttime	- start time (timestamp) for extracting metrics
+// StartTime	- start time (timestamp) for extracting metrics
 // EndTime		- end time (timestamp) for extracting metrics
 // MetricType	- metric type to extract
 type StackDriverClient struct {
