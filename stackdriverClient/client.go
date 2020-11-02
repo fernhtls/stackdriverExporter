@@ -43,8 +43,7 @@ func (st *StackDriverClient) validateClient() error {
 
 func (st *StackDriverClient) createClient() error {
 	// validates the client struct
-	err := st.validateClient()
-	if err != nil {
+	if err := st.validateClient(); err != nil {
 		return err
 	}
 	// Creates a new stackdriver client
