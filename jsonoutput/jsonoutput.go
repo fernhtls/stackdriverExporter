@@ -49,7 +49,7 @@ func (j *JSONOutput) buildFileName(metricType string, startTime *timestamppb.Tim
 
 // GetTimeSeriesMetric : writes the metrics capture for the interval in file
 func (j *JSONOutput) GetTimeSeriesMetric(projectID, metric, cronInterval string) {
-	startTime, endTime, err := utils.GetStartAndEndTimeJobs(cronInterval)
+	startTime, endTime, err := utils.GetStartAndEndTimeCronJobs(cronInterval)
 	if err != nil {
 		j.Logger.Println(fmt.Errorf("error on getting start and end time : %v", err))
 	}

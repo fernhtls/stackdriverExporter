@@ -3,6 +3,7 @@ package stackdriverClient
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	monitoring "cloud.google.com/go/monitoring/apiv3"
 	"github.com/golang/protobuf/ptypes/timestamp"
@@ -36,7 +37,8 @@ func (st *StackDriverClient) validateClient() error {
 		return errors.New("starttime cannot be empty")
 	}
 	if st.EndTime.AsTime().Before(st.StartTime.AsTime()) || st.EndTime.AsTime().Equal(st.StartTime.AsTime()) {
-		return errors.New("endtime cannot be bigger, or equal, than starttime")
+		return fmt.Errorf("endtime: %v, cannot be bigger, or equal, than starttime: %v",
+			st.EndTime.String(), st.StartTime.String())
 	}
 	return nil
 }

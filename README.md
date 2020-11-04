@@ -33,10 +33,10 @@ go run main.go --project_id "deployments-metrics" \
 
 ```
 go run main.go --project_id "deployments-metrics" \
-  --metric_type "storage.googleapis.com/storage/total_bytes|*/10 * * * *" \
-  --metric_type "storage.googleapis.com/storage/object_count|*/10 * * * *" \
-  --metric_type "bigquery.googleapis.com/storage/stored_bytes|*/10 * * * *" \
-  --metric_type "bigquery.googleapis.com/storage/table_count|*/10 * * * *" \
-  --metric_type "bigquery.googleapis.com/query/count|*/10 * * * *" \
+  --metric_type "storage.googleapis.com/storage/total_bytes" \
+  --metric_type "storage.googleapis.com/storage/object_count" \
+  --metric_type "bigquery.googleapis.com/storage/stored_bytes" \
+  --metric_type "bigquery.googleapis.com/storage/table_count" \
+  --metric_type "bigquery.googleapis.com/query/count" \
   --output_type "prometheus"
 ```

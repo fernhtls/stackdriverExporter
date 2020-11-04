@@ -11,6 +11,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"google.golang.org/api/iterator"
 	monitoringpb "google.golang.org/genproto/googleapis/monitoring/v3"
+	metricpb "google.golang.org/genproto/googleapis/api/metric"
 	"log"
 	"net/http"
 	"os"
@@ -77,7 +78,7 @@ func generateMetricName(metricType, resourceType string) (string, error) {
 	mt := strings.Split(metricType, "/")
 	fullMetricName = mt[1] + "_" + mt[2] + "_" + resourceType
 	if fullMetricName == "" {
-		return "", fmt.Errorf("error on generating name -> metricType: %s, mt: %v, labelName: %s", metricType, mt)
+		return "", fmt.Errorf("error on generating name -> metricType: %s, mt: %v", metricType, mt)
 	}
 	return fullMetricName, nil
 }
@@ -86,16 +87,16 @@ func generateMetricName(metricType, resourceType string) (string, error) {
 // todo: check cases of more points in a metrics response
 // todo: should work fine for single point metrics
 // todo: maybe include logic to return a type SET instead of the default Gauge being used
-func getMetricPointValue(valueType string, points []*monitoringpb.Point) float64 {
+func getMetricPointValue(valueType metricpb.MetricDescriptor_ValueType, points []*monitoringpb.Point) float64 {
 	for i := range points {
 		p := points[i]
 		switch valueType {
-		case "DOUBLE":
+		case metricpb.MetricDescriptor_DOUBLE:
 			return p.Value.GetDoubleValue()
-		case "INT64":
+		case metricpb.MetricDescriptor_INT64:
 			return float64(p.Value.GetInt64Value())
-		case "INT":
-			return float64(p.Value.GetInt64Value())
+		case metricpb.MetricDescriptor_MONEY:
+			return p.Value.GetDoubleValue()
 		default:
 			return 0.0
 		}
@@ -104,16 +105,33 @@ func getMetricPointValue(valueType string, points []*monitoringpb.Point) float64
 	return 0.0
 }
 
+// register the new metric for value types int or double
+func registerMetricIntOrDouble(name string, valueType metricpb.MetricDescriptor_ValueType, labels map[string]string,
+	points []*monitoringpb.Point) {
+	if err := prometheus.Register(prometheus.NewGaugeFunc(
+		prometheus.GaugeOpts{
+			Namespace:   "stackdriver",
+			Name:        name,
+			ConstLabels: labels,
+		},
+		func() float64 { return getMetricPointValue(valueType, points) },
+	)); err != nil {
+		if err.Error() != "duplicate metrics collector registration attempted" {
+			prometheusLogger.Printf("error on registering metric %s: %v", name, err)
+		}
+	}
+}
+
 // Function to get metrics and add to prometheus
 func getMetricsBackground(projectID string, metrics []utils.MetricsAndIntervalType) {
 	go func() {
-		startTime, endTime, err := utils.GetStartAndEndTimeJobs("*/10 * * * *")
-		if err != nil {
-			prometheusLogger.Fatal(err)
-		}
 		for {
 			for _, metric := range metrics {
-				prometheusLogger.Printf("collecting metric %s\n", metric.MetricType)
+				startTime, endTime, err := utils.GetStartAndEndTimeMinuteInterval(metric.Interval)
+				if err != nil {
+					prometheusLogger.Fatal(err)
+				}
+				prometheusLogger.Printf("collecting metric %s\n", metric)
 				it, err := getMetricValue(projectID, metric.MetricType, startTime, endTime)
 				if err != nil {
 					prometheusLogger.Fatal(err)
@@ -130,21 +148,29 @@ func getMetricsBackground(projectID string, metrics []utils.MetricsAndIntervalTy
 					if err != nil {
 						prometheusLogger.Println(err)
 					}
-					if err := prometheus.Register(prometheus.NewGaugeFunc(
-						prometheus.GaugeOpts{
-							Namespace:   "stackdriver",
-							Name:        name,
-							ConstLabels: resp.GetResource().Labels,
-						},
-						func() float64 { return getMetricPointValue(resp.GetValueType().String(), resp.GetPoints()) },
-					)); err != nil {
-						if err.Error() != "duplicate metrics collector registration attempted" {
-							prometheusLogger.Printf("error on registering metric %s: %v", name, err)
-						}
+					switch resp.GetValueType() {
+					case metricpb.MetricDescriptor_INT64:
+						registerMetricIntOrDouble(name,
+							resp.GetValueType(),
+							resp.GetResource().Labels,
+							resp.GetPoints())
+					case metricpb.MetricDescriptor_DOUBLE:
+						registerMetricIntOrDouble(
+							name,
+							resp.GetValueType(),
+							resp.GetResource().Labels,
+							resp.GetPoints())
+					case metricpb.MetricDescriptor_MONEY:
+						registerMetricIntOrDouble(
+							name,
+							resp.GetValueType(),
+							resp.GetResource().Labels,
+							resp.GetPoints())
 					}
 				}
 			}
 			// pushing all intervals to be getting only every minute
+			prometheusLogger.Println("**** ****")
 			time.Sleep(1 * time.Minute)
 		}
 	}()

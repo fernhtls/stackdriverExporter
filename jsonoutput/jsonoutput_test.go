@@ -15,7 +15,7 @@ func TestBuildFileName(t *testing.T) {
 	j := JSONOutput{
 		OutputPath: "/tmp",
 	}
-	startTime, endTime, err := utils.GetStartAndEndTimeJobs("*/5 * * * *")
+	startTime, endTime, err := utils.GetStartAndEndTimeCronJobs("*/5 * * * *")
 	if err != nil {
 		t.Error("error on generating test file name")
 	}

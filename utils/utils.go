@@ -3,6 +3,7 @@ package utils
 import (
 	"errors"
 	"log"
+	"strconv"
 	"strings"
 	"time"
 
@@ -30,16 +31,16 @@ func getMetricAndInterval(metricAndIntervalSlice []string) (string, string, erro
 	if len(metricAndIntervalSlice) > 2 {
 		return metricType, intervalMetric, errors.New("more than two arguments passed to generate the metric and interval")
 	}
-	// checking the cron expression if its valid
-	_, err := cronexpr.Parse(metricAndIntervalSlice[1])
-	if err != nil {
-		return metricType, intervalMetric, err
-	}
 	if len(metricAndIntervalSlice) == 1 {
 		// only contain the metric
-		// adding 5 min interval
-		intervalMetric = "*/5 * * * *"
+		// adding 10 min interval
+		intervalMetric = "*/10 * * * *"
 	} else {
+		// checking the cron expression if its valid
+		_, err := cronexpr.Parse(metricAndIntervalSlice[1])
+		if err != nil {
+			return metricType, intervalMetric, err
+		}
 		intervalMetric = metricAndIntervalSlice[1]
 	}
 	metricType = metricAndIntervalSlice[0]
@@ -90,9 +91,9 @@ func AddJobs(cronServer *cron.Cron, cronLogger *log.Logger, metricList []Metrics
 	return nil
 }
 
-// GetStartAndEndTimeJobs : Returns the start and end time for running a time series
+// GetStartAndEndTimeCronJobs : Returns the start and end time for running a time series
 // gets the start time from the interval for the cronjob
-func GetStartAndEndTimeJobs(cronInterval string) (*timestamppb.Timestamp, *timestamppb.Timestamp, error) {
+func GetStartAndEndTimeCronJobs(cronInterval string) (*timestamppb.Timestamp, *timestamppb.Timestamp, error) {
 	timeStartFunc := time.Now().Truncate(time.Second)
 	e, err := cronexpr.Parse(cronInterval)
 	if err != nil {
@@ -108,4 +109,32 @@ func GetStartAndEndTimeJobs(cronInterval string) (*timestamppb.Timestamp, *times
 		return nil, nil, err
 	}
 	return startTime, endTime, nil
+}
+
+// GetStartAndEndTimeMinuteInterval : Returns the start / end time for an interval from the crontab expression
+func GetStartAndEndTimeMinuteInterval(cronInterval string) (*timestamppb.Timestamp, *timestamppb.Timestamp, error) {
+	_, err := cronexpr.Parse(cronInterval)
+	if err != nil {
+		return nil, nil, err
+	}
+	// splits the cron expression
+	ce := strings.Split(cronInterval, " ")
+	// only does work for now for minutes
+	if len(strings.Split(ce[0], "/")) > 1 {
+		m, err := strconv.Atoi(strings.Split(ce[0], "/")[1])
+		if err != nil {
+			return nil, nil, err
+		}
+		timeStartFunc := time.Now().Truncate(time.Second)
+		endTime, err := ptypes.TimestampProto(timeStartFunc)
+		if err != nil {
+			return nil, nil, err
+		}
+		startTime, err := ptypes.TimestampProto(timeStartFunc.Add(-time.Duration(m) * time.Minute))
+		if err != nil {
+			return nil, nil, err
+		}
+		return startTime, endTime, nil
+	}
+	return nil, nil, errors.New("only minute expression is accepted, not * and no other interval")
 }
