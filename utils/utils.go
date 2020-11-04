@@ -2,8 +2,6 @@ package utils
 
 import (
 	"errors"
-	"log"
-	"strconv"
 	"strings"
 	"time"
 
@@ -18,6 +16,11 @@ type OutputMethod interface {
 	GetTimeSeriesMetric(string, string, string)
 }
 
+const (
+	PrometheusOutput = iota
+	JSONOutput
+)
+
 // MetricsAndIntervalType : struct with the metric type + the interval
 type MetricsAndIntervalType struct {
 	MetricType string
@@ -25,23 +28,31 @@ type MetricsAndIntervalType struct {
 }
 
 // building metric and interval list
-func getMetricAndInterval(metricAndIntervalSlice []string) (string, string, error) {
+func getMetricAndInterval(metricAndIntervalSlice []string, outputType int) (string, string, error) {
 	var metricType string
 	var intervalMetric string
 	if len(metricAndIntervalSlice) > 2 {
 		return metricType, intervalMetric, errors.New("more than two arguments passed to generate the metric and interval")
 	}
 	if len(metricAndIntervalSlice) == 1 {
-		// only contain the metric
-		// adding 10 min interval
-		intervalMetric = "*/10 * * * *"
-	} else {
-		// checking the cron expression if its valid
-		_, err := cronexpr.Parse(metricAndIntervalSlice[1])
-		if err != nil {
-			return metricType, intervalMetric, err
+		switch outputType {
+		case PrometheusOutput:
+			intervalMetric = "600"
+		default:
+			intervalMetric = "*/10 * * * *"
 		}
-		intervalMetric = metricAndIntervalSlice[1]
+	} else {
+		switch outputType {
+		case PrometheusOutput:
+			intervalMetric = metricAndIntervalSlice[1]
+		default:
+			// checking the cron expression if its valid
+			_, err := cronexpr.Parse(metricAndIntervalSlice[1])
+			if err != nil {
+				return metricType, intervalMetric, err
+			}
+			intervalMetric = metricAndIntervalSlice[1]
+		}
 	}
 	metricType = metricAndIntervalSlice[0]
 	return metricType, intervalMetric, nil
@@ -60,10 +71,10 @@ func checkIfNotInMetricsList(metricType string, metricTypeList []MetricsAndInter
 }
 
 // SetMetricsAndIntervalList : settting metrics and interval list
-func SetMetricsAndIntervalList(metrics []string) ([]MetricsAndIntervalType, error) {
+func SetMetricsAndIntervalList(metrics []string, outputType int) ([]MetricsAndIntervalType, error) {
 	metricsAndInterval := make([]MetricsAndIntervalType, 0)
 	for _, metric := range metrics {
-		metricType, intervalMetric, err := getMetricAndInterval(strings.Split(metric, "|"))
+		metricType, intervalMetric, err := getMetricAndInterval(strings.Split(metric, "|"), outputType)
 		if err != nil {
 			return nil, err
 		}
@@ -78,7 +89,7 @@ func SetMetricsAndIntervalList(metrics []string) ([]MetricsAndIntervalType, erro
 }
 
 // AddJobs : adds jobs to the cron server
-func AddJobs(cronServer *cron.Cron, cronLogger *log.Logger, metricList []MetricsAndIntervalType, projectID string, output OutputMethod) error {
+func AddJobs(cronServer *cron.Cron, metricList []MetricsAndIntervalType, projectID string, output OutputMethod) error {
 	for _, metricType := range metricList {
 		// not passing directly as it passes only the last value to the function calls
 		metricTypeMetricType := metricType.MetricType
@@ -112,29 +123,15 @@ func GetStartAndEndTimeCronJobs(cronInterval string) (*timestamppb.Timestamp, *t
 }
 
 // GetStartAndEndTimeMinuteInterval : Returns the start / end time for an interval from the crontab expression
-func GetStartAndEndTimeMinuteInterval(cronInterval string) (*timestamppb.Timestamp, *timestamppb.Timestamp, error) {
-	_, err := cronexpr.Parse(cronInterval)
+func GetStartAndEndTimeMinuteInterval(interval int64) (*timestamppb.Timestamp, *timestamppb.Timestamp, error) {
+	timeStartFunc := time.Now().Truncate(time.Second)
+	endTime, err := ptypes.TimestampProto(timeStartFunc)
 	if err != nil {
 		return nil, nil, err
 	}
-	// splits the cron expression
-	ce := strings.Split(cronInterval, " ")
-	// only does work for now for minutes
-	if len(strings.Split(ce[0], "/")) > 1 {
-		m, err := strconv.Atoi(strings.Split(ce[0], "/")[1])
-		if err != nil {
-			return nil, nil, err
-		}
-		timeStartFunc := time.Now().Truncate(time.Second)
-		endTime, err := ptypes.TimestampProto(timeStartFunc)
-		if err != nil {
-			return nil, nil, err
-		}
-		startTime, err := ptypes.TimestampProto(timeStartFunc.Add(-time.Duration(m) * time.Minute))
-		if err != nil {
-			return nil, nil, err
-		}
-		return startTime, endTime, nil
+	startTime, err := ptypes.TimestampProto(timeStartFunc.Add(-time.Duration(interval) * time.Minute))
+	if err != nil {
+		return nil, nil, err
 	}
-	return nil, nil, errors.New("only minute expression is accepted, not * and no other interval")
+	return startTime, endTime, nil
 }

@@ -10,8 +10,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"google.golang.org/api/iterator"
-	monitoringpb "google.golang.org/genproto/googleapis/monitoring/v3"
 	metricpb "google.golang.org/genproto/googleapis/api/metric"
+	monitoringpb "google.golang.org/genproto/googleapis/monitoring/v3"
 	"log"
 	"net/http"
 	"os"
@@ -88,8 +88,7 @@ func generateMetricName(metricType, resourceType string) (string, error) {
 // todo: should work fine for single point metrics
 // todo: maybe include logic to return a type SET instead of the default Gauge being used
 func getMetricPointValue(valueType metricpb.MetricDescriptor_ValueType, points []*monitoringpb.Point) float64 {
-	for i := range points {
-		p := points[i]
+	for _, p := range points {
 		switch valueType {
 		case metricpb.MetricDescriptor_DOUBLE:
 			return p.Value.GetDoubleValue()
@@ -127,7 +126,11 @@ func getMetricsBackground(projectID string, metrics []utils.MetricsAndIntervalTy
 	go func() {
 		for {
 			for _, metric := range metrics {
-				startTime, endTime, err := utils.GetStartAndEndTimeMinuteInterval(metric.Interval)
+				interval, err := strconv.Atoi(metric.Interval)
+				if err != nil {
+					prometheusLogger.Fatal(err)
+				}
+				startTime, endTime, err := utils.GetStartAndEndTimeMinuteInterval(int64(interval))
 				if err != nil {
 					prometheusLogger.Fatal(err)
 				}
@@ -150,22 +153,11 @@ func getMetricsBackground(projectID string, metrics []utils.MetricsAndIntervalTy
 					}
 					switch resp.GetValueType() {
 					case metricpb.MetricDescriptor_INT64:
-						registerMetricIntOrDouble(name,
-							resp.GetValueType(),
-							resp.GetResource().Labels,
-							resp.GetPoints())
+						registerMetricIntOrDouble(name, resp.GetValueType(), resp.GetResource().Labels, resp.GetPoints())
 					case metricpb.MetricDescriptor_DOUBLE:
-						registerMetricIntOrDouble(
-							name,
-							resp.GetValueType(),
-							resp.GetResource().Labels,
-							resp.GetPoints())
+						registerMetricIntOrDouble(name, resp.GetValueType(), resp.GetResource().Labels, resp.GetPoints())
 					case metricpb.MetricDescriptor_MONEY:
-						registerMetricIntOrDouble(
-							name,
-							resp.GetValueType(),
-							resp.GetResource().Labels,
-							resp.GetPoints())
+						registerMetricIntOrDouble(name, resp.GetValueType(), resp.GetResource().Labels, resp.GetPoints())
 					}
 				}
 			}

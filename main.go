@@ -10,13 +10,7 @@ import (
 
 	"github.com/fernhtls/stackdriverExporter/jsonoutput"
 	"github.com/fernhtls/stackdriverExporter/utils"
-	cron "github.com/robfig/cron/v3"
-)
-
-// output types constant
-const (
-	json = iota
-	prometheus
+	"github.com/robfig/cron/v3"
 )
 
 type metricsListType []string
@@ -64,9 +58,9 @@ func init() {
 func validateFlags() {
 	switch outputTypeArg {
 	case "json":
-		outputType = json
+		outputType = utils.JSONOutput
 	case "prometheus":
-		outputType = prometheus
+		outputType = utils.PrometheusOutput
 	default:
 		log.Fatal("output type not valid")
 	}
@@ -90,12 +84,12 @@ func startCronServer() {
 }
 
 func buildJobsOutPut() {
-	metricsAndIntervals, err := utils.SetMetricsAndIntervalList(metricsList)
-	if err != nil {
-		log.Fatal("error on setting metrics list:", err)
-	}
 	switch outputType {
-	case json:
+	case utils.JSONOutput:
+		metricsAndIntervals, err := utils.SetMetricsAndIntervalList(metricsList, utils.JSONOutput)
+		if err != nil {
+			log.Fatal("error on setting metrics list:", err)
+		}
 		if outputPath == "" {
 			log.Fatal("should pass a output_path for json output")
 		}
@@ -103,17 +97,19 @@ func buildJobsOutPut() {
 			OutputPath: outputPath,
 			Logger:     cronLogger,
 		}
-		err := j.ValidateOutputPath()
-		if err != nil {
+		if err = j.ValidateOutputPath(); err != nil {
 			log.Fatal(err)
 		}
-		err = utils.AddJobs(cronServer, cronLogger, metricsAndIntervals, projectID, &j)
-		if err != nil {
+		if err = utils.AddJobs(cronServer, metricsAndIntervals, projectID, &j); err != nil {
 			log.Fatal("error on adding jobs to cron server:", err)
 		}
 		startCronServer()
-	case prometheus:
+	case utils.PrometheusOutput:
 		fmt.Println("prometheus output will just start the http server and gather the metrics every minute")
+		metricsAndIntervals, err := utils.SetMetricsAndIntervalList(metricsList, utils.PrometheusOutput)
+		if err != nil {
+			log.Fatal("error on setting metrics list:", err)
+		}
 		p := prometheusOutput.OutputConfig{
 			BaseHandlerPath: "/metrics",
 			Port: 8081,
