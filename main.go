@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/fernhtls/stackdriverExporter/prometheusOutput"
 	"log"
 	"os"
 	"strings"
@@ -12,11 +13,18 @@ import (
 	cron "github.com/robfig/cron/v3"
 )
 
+// output types constant
+const (
+	json = iota
+	prometheus
+)
+
 type metricsListType []string
 
 var projectID string
 var metricsList metricsListType
-var outputType string
+var outputTypeArg string
+var outputType int
 var outputPath string
 var cronServer *cron.Cron
 var cronLogger *log.Logger
@@ -39,7 +47,7 @@ func init() {
 		fmt.Println("")
 	}
 	flag.StringVar(&projectID, "project_id", "", "gcp project id to connect and extract the metrics")
-	flag.StringVar(&outputType, "output_type", "json", "output type for pushing the metrics extracted")
+	flag.StringVar(&outputTypeArg, "output_type", "json", "output type for pushing the metrics extracted")
 	flag.StringVar(&outputPath, "output_path", "", "optional for when extracting the data to json")
 	textMetricFlag := "Metric types to extract (pass --metric_type multiple time to extract multiple metrics)"
 	textMetricFlag += "\nAfter a pipe character (\"|\"), add as well the interval to collect the metric as a cron expression like \"5/* * * * *\""
@@ -54,6 +62,14 @@ func init() {
 
 // validation of flags being passed on command line
 func validateFlags() {
+	switch outputTypeArg {
+	case "json":
+		outputType = json
+	case "prometheus":
+		outputType = prometheus
+	default:
+		log.Fatal("output type not valid")
+	}
 	if projectID == "" {
 		log.Fatal("project id is mandatory")
 	}
@@ -62,13 +78,24 @@ func validateFlags() {
 	}
 }
 
+func startCronServer() {
+	fmt.Println("")
+	fmt.Println("  Project: ", "\t\t", projectID)
+	fmt.Println("  Metrics list: ", "\t", metricsList.String())
+	fmt.Println("")
+	if len(cronServer.Entries()) == 0 {
+		log.Fatal("no jobs were added to the cronserver")
+	}
+	cronServer.Run()
+}
+
 func buildJobsOutPut() {
 	metricsAndIntervals, err := utils.SetMetricsAndIntervalList(metricsList)
 	if err != nil {
 		log.Fatal("error on setting metrics list:", err)
 	}
 	switch outputType {
-	case "json":
+	case json:
 		if outputPath == "" {
 			log.Fatal("should pass a output_path for json output")
 		}
@@ -84,6 +111,17 @@ func buildJobsOutPut() {
 		if err != nil {
 			log.Fatal("error on adding jobs to cron server:", err)
 		}
+		startCronServer()
+	case prometheus:
+		fmt.Println("prometheus output will just start the http server and gather the metrics every minute")
+		p := prometheusOutput.OutputConfig{
+			BaseHandlerPath: "/metrics",
+			Port: 8081,
+		}
+		if err := p.ValidateConfig(); err != nil {
+			log.Fatal(err)
+		}
+		p.StartServerPrometheusMetrics(projectID, metricsAndIntervals)
 	default: // stops process - unrecognized output
 		log.Fatal("output type not allowed")
 	}
@@ -93,12 +131,4 @@ func main() {
 	flag.Parse()
 	validateFlags()
 	buildJobsOutPut()
-	fmt.Println("")
-	fmt.Println("  Project: ", "\t\t", projectID)
-	fmt.Println("  Metrics list: ", "\t", metricsList.String())
-	fmt.Println("")
-	if len(cronServer.Entries()) == 0 {
-		log.Fatal("no jobs were added to the cronserver")
-	}
-	cronServer.Run()
 }
