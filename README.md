@@ -25,10 +25,17 @@ More output formats like PROMETHEUS, import to BQ and so on
 
 ```
 go run main.go --project_id "deployments-metrics" \
-  --metric_type "storage.googleapis.com/storage/total_bytes|*/10 * * * *" \
-  --metric_type "storage.googleapis.com/storage/object_count|*/10 * * * *" \
+  --metric_type "storage.googleapis.com/storage/total_bytes|*/5 * * * *" \
+  --metric_type "storage.googleapis.com/storage/object_count|*/5 * * * *" \
   --output_type "json" \
   --output_path "/tmp"
+```
+
+```
+go run main.go --project_id "deployments-metrics" \
+  --metric_type "storage.googleapis.com/storage/total_bytes" \
+  --metric_type "storage.googleapis.com/storage/object_count" \
+  --output_type "prometheus"
 ```
 
 ```

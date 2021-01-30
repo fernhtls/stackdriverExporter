@@ -2,18 +2,18 @@ package utils
 
 import (
 	"errors"
-	"strings"
-	"time"
-
+	"github.com/fernhtls/stackdriverExporter/stackdriverClient"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/gorhill/cronexpr"
 	cron "github.com/robfig/cron/v3"
 	"google.golang.org/protobuf/types/known/timestamppb"
+	"strings"
+	"time"
 )
 
 //OutputMethod : interface for the several output methods
 type OutputMethod interface {
-	GetTimeSeriesMetric(string, string, string)
+	GetTimeSeriesMetric(*stackdriverClient.StackDriverClient, string, string)
 }
 
 const (
@@ -90,11 +90,18 @@ func SetMetricsAndIntervalList(metrics []string, outputType int) ([]MetricsAndIn
 
 // AddJobs : adds jobs to the cron server
 func AddJobs(cronServer *cron.Cron, metricList []MetricsAndIntervalType, projectID string, output OutputMethod) error {
+	client := stackdriverClient.StackDriverClient{
+		ProjectID:  projectID,
+	}
+	if err := client.InitClient(); err != nil {
+		return err
+	}
 	for _, metricType := range metricList {
 		// not passing directly as it passes only the last value to the function calls
 		metricTypeMetricType := metricType.MetricType
 		metricTypeInterval := metricType.Interval
-		_, err := cronServer.AddFunc(metricTypeInterval, func() { output.GetTimeSeriesMetric(projectID, metricTypeMetricType, metricTypeInterval) })
+		_, err := cronServer.AddFunc(metricTypeInterval, func() {
+			output.GetTimeSeriesMetric(&client, metricTypeMetricType, metricTypeInterval) })
 		if err != nil {
 			return err
 		}

@@ -111,13 +111,14 @@ func buildJobsOutPut() {
 			log.Fatal("error on setting metrics list:", err)
 		}
 		p := prometheusOutput.OutputConfig{
-			BaseHandlerPath: "/metrics",
+			ProjectID: projectID,
+			BaseHandlerPath: "/stackmetrics",
 			Port: 8081,
 		}
 		if err := p.ValidateConfig(); err != nil {
 			log.Fatal(err)
 		}
-		p.StartServerPrometheusMetrics(projectID, metricsAndIntervals)
+		p.StartServerPrometheusMetrics(metricsAndIntervals)
 	default: // stops process - unrecognized output
 		log.Fatal("output type not allowed")
 	}

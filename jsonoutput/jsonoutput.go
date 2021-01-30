@@ -48,23 +48,19 @@ func (j *JSONOutput) buildFileName(metricType string, startTime *timestamppb.Tim
 }
 
 // GetTimeSeriesMetric : writes the metrics capture for the interval in file
-func (j *JSONOutput) GetTimeSeriesMetric(projectID, metric, cronInterval string) {
+func (j *JSONOutput) GetTimeSeriesMetric(client *stackdriverClient.StackDriverClient, metric, cronInterval string) {
 	startTime, endTime, err := utils.GetStartAndEndTimeCronJobs(cronInterval)
 	if err != nil {
 		j.Logger.Println(fmt.Errorf("error on getting start and end time : %v", err))
 	}
 	j.Logger.Println("getting metrics for type metric", metric, "start:", startTime.AsTime(), "end:", endTime.AsTime())
-	client := stackdriverClient.StackDriverClient{
-		ProjectID:  projectID,
-		StartTime:  startTime,
-		EndTime:    endTime,
-		MetricType: metric,
+	if err := client.InitClient(); err != nil {
+		j.Logger.Println(fmt.Errorf("error on creating client: %v", err))
 	}
-	it, err := client.GetTimeSeriesMetric()
+	it, err := client.GetTimeSeriesMetric(metric, startTime, endTime)
 	if err != nil {
 		j.Logger.Println(fmt.Errorf("error on creating client: %v", err))
 	}
-
 	fileName := j.buildFileName(metric, startTime, endTime)
 	f, err := os.Create(fileName)
 	if err != nil {

@@ -2,51 +2,22 @@ package stackdriverClient
 
 import (
 	"fmt"
-	"testing"
-	"time"
-
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/api/iterator"
+	"testing"
+	"time"
 )
 
-func TestCreateClientErrors(t *testing.T) {
-	// Raises an error as timestamp are equal
-	timeSame := ptypes.TimestampNow()
-	clientErrorTimestamp := StackDriverClient{
-		ProjectID:  "deployments-metrics",
-		StartTime:  timeSame,
-		EndTime:    timeSame,
-		MetricType: "storage.googleapis.com/storage/total_bytes",
-	}
-	err := clientErrorTimestamp.createClient()
-	assert.Error(t, err)
-	// Raises an error as timestamp are equal
-	clientErroremptyTimestamp := StackDriverClient{
-		ProjectID:  "deployments-metrics",
-		StartTime:  timeSame,
-		MetricType: "storage.googleapis.com/storage/total_bytes",
-	}
-	err = clientErroremptyTimestamp.createClient()
-	assert.Error(t, err)
-}
-
 func TestCreateClient(t *testing.T) {
-	et := ptypes.TimestampNow()
-	st, err := ptypes.TimestampProto(time.Now().Add(-5 * time.Minute))
-	if err != nil {
-		t.Error(err)
-	}
+	// Raises an error as timestamp are equal
 	client := StackDriverClient{
 		ProjectID:  "deployments-metrics",
-		StartTime:  st,
-		EndTime:    et,
-		MetricType: "storage.googleapis.com/storage/total_bytes",
 	}
-	err = client.createClient()
-	assert.NoError(t, err)
+	assert.NoError(t, client.InitClient())
 }
+
 
 func TestGetTimeSeriesMetric(t *testing.T) {
 	// Depends on setting GOOGLE_APPLICATION_CREDENTIALS
@@ -58,15 +29,13 @@ func TestGetTimeSeriesMetric(t *testing.T) {
 	}
 	client := StackDriverClient{
 		ProjectID:  "deployments-metrics",
-		StartTime:  st,
-		EndTime:    et,
-		MetricType: "storage.googleapis.com/storage/total_bytes",
 	}
-	err = client.createClient()
+	err = client.InitClient()
 	if err != nil {
 		t.Error(err)
 	}
-	it, err := client.GetTimeSeriesMetric()
+	it, err := client.GetTimeSeriesMetric("storage.googleapis.com/storage/total_bytes",
+		st, et)
 	if err != nil {
 		t.Error(err)
 	}
