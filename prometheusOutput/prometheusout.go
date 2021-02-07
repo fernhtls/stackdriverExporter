@@ -134,52 +134,99 @@ func getMetricValueNumeric(valueType metricpb.MetricDescriptor_ValueType, point 
 }
 
 // Function to get gauge metrics and add to prometheus
-func getGaugeMetricsBackground(client *stackdriverClient.StackDriverClient) {
+func geMetricsBackground(client *stackdriverClient.StackDriverClient) {
 	go func() {
 		for {
-			for _, gaugeMetric := range prometheusMetricsGaugeVec {
-				interval, err := strconv.Atoi(gaugeMetric.MetricsAndInterval.Interval)
-				if err != nil {
-					prometheusLogger.Fatal(err)
-				}
-				startTime, endTime, err := utils.GetStartAndEndTimeMinuteInterval(int64(interval))
-				if err != nil {
-					prometheusLogger.Fatal(err)
-				}
-				prometheusLogger.Printf("collecting metric %s\n", gaugeMetric.MetricsAndInterval.MetricType)
-				it, err := getMetricValue(client, gaugeMetric.MetricsAndInterval.MetricType, startTime, endTime)
-				if err != nil {
-					prometheusLogger.Fatal(err)
-				}
-				for {
-					resp, err := it.Next()
-					if err == iterator.Done {
-						break
-					}
-					if err != nil {
-						prometheusLogger.Fatal(err)
-					}
-					// setting value - getting only latest value to set
-					var lastValue float64
-					var endTime *timestamp.Timestamp
-					for _, p := range resp.GetPoints() {
-						if endTime == nil {
-							endTime = p.Interval.EndTime
-							lastValue = getMetricValueNumeric(gaugeMetric.StackValueType, p)
-						}
-						if p.Interval.EndTime.AsTime().After(endTime.AsTime()) {
-							endTime = p.Interval.EndTime
-							lastValue = getMetricValueNumeric(gaugeMetric.StackValueType, p)
-						}
-					}
-					gaugeMetric.ResourceTypeGaugeMetricVec[resp.Resource.Type].GaugeMetricVec.WithLabelValues(
-						getMapLabelsValues(resp.Resource.Labels)...).Set(lastValue)
-				}
-			}
-			prometheusLogger.Println("**** ****")
+			getGaugeMetrics(client)
+			prometheusLogger.Println("**** got all gauge metrics ****")
 			time.Sleep(1 * time.Minute)
 		}
 	}()
+	go func() {
+		for {
+			getHistogramMetrics(client)
+			prometheusLogger.Println("**** got all histogram metrics ****")
+			time.Sleep(1 * time.Minute)
+		}
+	}()
+}
+
+func getGaugeMetrics(client *stackdriverClient.StackDriverClient) {
+	for _, gaugeMetric := range prometheusMetricsGaugeVec {
+		interval, err := strconv.Atoi(gaugeMetric.MetricsAndInterval.Interval)
+		if err != nil {
+			prometheusLogger.Fatal(err)
+		}
+		startTime, endTime, err := utils.GetStartAndEndTimeMinuteInterval(int64(interval))
+		if err != nil {
+			prometheusLogger.Fatal(err)
+		}
+		prometheusLogger.Printf("collecting metric %s\n", gaugeMetric.MetricsAndInterval.MetricType)
+		it, err := getMetricValue(client, gaugeMetric.MetricsAndInterval.MetricType, startTime, endTime)
+		if err != nil {
+			prometheusLogger.Fatal(err)
+		}
+		for {
+			resp, err := it.Next()
+			if err == iterator.Done {
+				break
+			}
+			if err != nil {
+				prometheusLogger.Fatal(err)
+			}
+			// setting value - getting only latest value to set
+			var lastValue float64
+			var endTime *timestamp.Timestamp
+			for _, p := range resp.GetPoints() {
+				if endTime == nil {
+					endTime = p.Interval.EndTime
+					lastValue = getMetricValueNumeric(gaugeMetric.StackValueType, p)
+				}
+				if p.Interval.EndTime.AsTime().After(endTime.AsTime()) {
+					endTime = p.Interval.EndTime
+					lastValue = getMetricValueNumeric(gaugeMetric.StackValueType, p)
+				}
+			}
+			gaugeMetric.ResourceTypeGaugeMetricVec[resp.Resource.Type].GaugeMetricVec.WithLabelValues(
+				getMapLabelsValues(resp.Resource.Labels)...).Set(lastValue)
+		}
+	}
+}
+
+func getHistogramMetrics(client *stackdriverClient.StackDriverClient) {
+	for _, histoMetric := range prometheusMetricsHistoVec {
+		interval, err := strconv.Atoi(histoMetric.MetricsAndInterval.Interval)
+		if err != nil {
+			prometheusLogger.Fatal(err)
+		}
+		startTime, endTime, err := utils.GetStartAndEndTimeMinuteInterval(int64(interval))
+		if err != nil {
+			prometheusLogger.Fatal(err)
+		}
+		prometheusLogger.Printf("collecting metric %s\n", histoMetric.MetricsAndInterval.MetricType)
+		it, err := getMetricValue(client, histoMetric.MetricsAndInterval.MetricType, startTime, endTime)
+		if err != nil {
+			prometheusLogger.Fatal(err)
+		}
+		for {
+			resp, err := it.Next()
+			if err == iterator.Done {
+				break
+			}
+			if err != nil {
+				prometheusLogger.Fatal(err)
+			}
+			for _, p := range resp.GetPoints() {
+				// TODO: still to check ho to export
+				//d := p.GetValue().GetDistributionValue
+				//fmt.Println(p)
+				//fmt.Println(p.GetValue().GetDistributionValue().Exemplars)
+				histoMetric.ResourceTypeHistoMetricVec[resp.Resource.Type].HistoMetricVec.WithLabelValues(
+					getMapLabelsValues(resp.Resource.Labels)...).Observe(
+						getMetricValueNumeric(histoMetric.StackValueType, p))
+			}
+		}
+	}
 }
 
 func getMapLabelsValues(mapLabels map[string]string) []string {
@@ -289,7 +336,7 @@ func (p *OutputConfig) StartServerPrometheusMetrics(metrics []utils.MetricsAndIn
 	// Register all prometheus metrics
 	registerMetrics(&client, metrics)
 	// Adds data to the metrics
-	getGaugeMetricsBackground(&client)
+	geMetricsBackground(&client)
 	http.Handle(p.BaseHandlerPath, promhttp.Handler())
 	if err := http.ListenAndServe(":"+strconv.Itoa(p.Port), nil); err != nil {
 		prometheusLogger.Fatal(err)

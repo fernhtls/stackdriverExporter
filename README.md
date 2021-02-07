@@ -45,5 +45,6 @@ go run main.go --project_id "deployments-metrics" \
   --metric_type "bigquery.googleapis.com/storage/stored_bytes" \
   --metric_type "bigquery.googleapis.com/storage/table_count" \
   --metric_type "bigquery.googleapis.com/query/count" \
+  --metric_type "bigquery.googleapis.com/query/execution_times" \
   --output_type "prometheus"
 ```
