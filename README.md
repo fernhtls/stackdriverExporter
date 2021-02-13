@@ -48,3 +48,15 @@ go run main.go --project_id "deployments-metrics" \
   --metric_type "bigquery.googleapis.com/query/execution_times" \
   --output_type "prometheus"
 ```
+
+```
+go run main.go --project_id "deployments-metrics" \
+  --metric_type "storage.googleapis.com/storage/total_bytes|*/10 * * * *" \
+  --metric_type "storage.googleapis.com/storage/object_count|*/10 * * * *" \
+  --metric_type "bigquery.googleapis.com/storage/stored_bytes|*/10 * * * *" \
+  --metric_type "bigquery.googleapis.com/storage/table_count|*/10 * * * *" \
+  --metric_type "bigquery.googleapis.com/query/count|*/10 * * * *" \
+  --metric_type "bigquery.googleapis.com/query/execution_times|*/10 * * * *" \
+  --output_type "json" \
+  --output_path "/tmp"
+```

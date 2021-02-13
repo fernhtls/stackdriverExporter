@@ -178,11 +178,7 @@ func getGaugeMetrics(client *stackdriverClient.StackDriverClient) {
 			var lastValue float64
 			var endTime *timestamp.Timestamp
 			for _, p := range resp.GetPoints() {
-				if endTime == nil {
-					endTime = p.Interval.EndTime
-					lastValue = getMetricValueNumeric(gaugeMetric.StackValueType, p)
-				}
-				if p.Interval.EndTime.AsTime().After(endTime.AsTime()) {
+				if endTime == nil || p.Interval.EndTime.AsTime().After(endTime.AsTime()) {
 					endTime = p.Interval.EndTime
 					lastValue = getMetricValueNumeric(gaugeMetric.StackValueType, p)
 				}
@@ -217,10 +213,6 @@ func getHistogramMetrics(client *stackdriverClient.StackDriverClient) {
 				prometheusLogger.Fatal(err)
 			}
 			for _, p := range resp.GetPoints() {
-				// TODO: still to check ho to export
-				//d := p.GetValue().GetDistributionValue
-				//fmt.Println(p)
-				//fmt.Println(p.GetValue().GetDistributionValue().Exemplars)
 				histoMetric.ResourceTypeHistoMetricVec[resp.Resource.Type].HistoMetricVec.WithLabelValues(
 					getMapLabelsValues(resp.Resource.Labels)...).Observe(
 						getMetricValueNumeric(histoMetric.StackValueType, p))
